@@ -1,18 +1,18 @@
-import React, { useState, useEffect } from 'react';
-import './ConsentManagement.css';
-import { apiService } from '../services/apiService';
-import { useWeb3 } from '../hooks/useWeb3';
+import React, { useState, useEffect } from "react";
+import "./ConsentManagement.css";
+import { apiService } from "../services/apiService";
+import { useWeb3 } from "../hooks/useWeb3";
 
 const ConsentManagement = ({ account }) => {
   const { signMessage } = useWeb3();
   const [consents, setConsents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [filterStatus, setFilterStatus] = useState('all');
+  const [filterStatus, setFilterStatus] = useState("all");
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [formData, setFormData] = useState({
-    patientId: '',
-    purpose: '',
+    patientId: "",
+    purpose: "",
   });
 
   // TODO: Implement fetchConsents function
@@ -22,6 +22,13 @@ const ConsentManagement = ({ account }) => {
       try {
         // TODO: Call apiService.getConsents with appropriate filters
         // TODO: Update consents state
+        let res;
+        if (filterStatus === "all") {
+          res = await apiService.getConsents();
+        } else {
+          res = await apiService.getConsents(null, filterStatus);
+        }
+        setConsents(res.consents);
       } catch (err) {
         setError(err.message);
       } finally {
@@ -40,7 +47,7 @@ const ConsentManagement = ({ account }) => {
   const handleCreateConsent = async (e) => {
     e.preventDefault();
     if (!account) {
-      alert('Please connect your wallet first');
+      alert("Please connect your wallet first");
       return;
     }
 
@@ -50,8 +57,25 @@ const ConsentManagement = ({ account }) => {
       // 2. Sign the message using signMessage
       // 3. Call apiService.createConsent with patientId, purpose, account, and signature
       // 4. Refresh consents and reset form
+
+      const message = `I consent to: ${formData.purpose} for patient: ${formData.patientId}`;
+      const signature = await signMessage(message);
+      await apiService.createConsent({
+        patientId: formData.patientId,
+        purpose: formData.purpose,
+        walletAddress: account,
+        signature,
+      });
+
+      const updatedConsents = await apiService.getConsents();
+      setConsents(updatedConsents.consents);
+      setFormData({
+        patientId: "",
+        purpose: "",
+      });
+      setShowCreateForm(false);
     } catch (err) {
-      alert('Failed to create consent: ' + err.message);
+      alert("Failed to create consent: " + err.message);
     }
   };
 
@@ -61,8 +85,21 @@ const ConsentManagement = ({ account }) => {
     try {
       // TODO: Call apiService.updateConsent to update the status
       // TODO: Refresh consents list
+      const updatedConsent = await apiService.updateConsent(consentId, {
+        status: newStatus,
+      });
+      setConsents(
+        consents.map((consent) => {
+          if (consent.id === consentId) {
+            return {
+              ...updatedConsent,
+            };
+          }
+          return consent;
+        })
+      );
     } catch (err) {
-      alert('Failed to update consent: ' + err.message);
+      alert("Failed to update consent: " + err.message);
     }
   };
 
@@ -70,6 +107,14 @@ const ConsentManagement = ({ account }) => {
     return (
       <div className="consent-management-container">
         <div className="loading">Loading consents...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="consent-management-container">
+        <div className="warning">Error: {error}</div>
       </div>
     );
   }
@@ -83,7 +128,7 @@ const ConsentManagement = ({ account }) => {
           onClick={() => setShowCreateForm(!showCreateForm)}
           disabled={!account}
         >
-          {showCreateForm ? 'Cancel' : 'Create New Consent'}
+          {showCreateForm ? "Cancel" : "Create New Consent"}
         </button>
       </div>
 
@@ -102,7 +147,9 @@ const ConsentManagement = ({ account }) => {
               <input
                 type="text"
                 value={formData.patientId}
-                onChange={(e) => setFormData({ ...formData, patientId: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, patientId: e.target.value })
+                }
                 required
                 placeholder="e.g., patient-001"
               />
@@ -111,14 +158,24 @@ const ConsentManagement = ({ account }) => {
               <label>Purpose</label>
               <select
                 value={formData.purpose}
-                onChange={(e) => setFormData({ ...formData, purpose: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, purpose: e.target.value })
+                }
                 required
               >
                 <option value="">Select purpose...</option>
-                <option value="Research Study Participation">Research Study Participation</option>
-                <option value="Data Sharing with Research Institution">Data Sharing with Research Institution</option>
-                <option value="Third-Party Analytics Access">Third-Party Analytics Access</option>
-                <option value="Insurance Provider Access">Insurance Provider Access</option>
+                <option value="Research Study Participation">
+                  Research Study Participation
+                </option>
+                <option value="Data Sharing with Research Institution">
+                  Data Sharing with Research Institution
+                </option>
+                <option value="Third-Party Analytics Access">
+                  Third-Party Analytics Access
+                </option>
+                <option value="Insurance Provider Access">
+                  Insurance Provider Access
+                </option>
               </select>
             </div>
             <button type="submit" className="submit-btn">
@@ -130,20 +187,20 @@ const ConsentManagement = ({ account }) => {
 
       <div className="consent-filters">
         <button
-          className={filterStatus === 'all' ? 'active' : ''}
-          onClick={() => setFilterStatus('all')}
+          className={filterStatus === "all" ? "active" : ""}
+          onClick={() => setFilterStatus("all")}
         >
           All
         </button>
         <button
-          className={filterStatus === 'active' ? 'active' : ''}
-          onClick={() => setFilterStatus('active')}
+          className={filterStatus === "active" ? "active" : ""}
+          onClick={() => setFilterStatus("active")}
         >
           Active
         </button>
         <button
-          className={filterStatus === 'pending' ? 'active' : ''}
-          onClick={() => setFilterStatus('pending')}
+          className={filterStatus === "pending" ? "active" : ""}
+          onClick={() => setFilterStatus("pending")}
         >
           Pending
         </button>
@@ -155,15 +212,57 @@ const ConsentManagement = ({ account }) => {
         {/* Map through consents and display them */}
         {/* Show: patientId, purpose, status, createdAt, blockchainTxHash */}
         {/* Add buttons to update status for pending consents */}
-        <div className="placeholder">
-          <p>Consent list will be displayed here</p>
-          <p>Implement the consent list rendering</p>
-        </div>
+        {consents.length ? (
+          consents.map((consent) => {
+            return (
+              <div className="consent-card" key={consent.id}>
+                <div className="consent-header-info">
+                  <span className="consent-purpose">{consent.purpose}</span>
+                  <span className={`consent-status ${consent.status}`}>
+                    {consent.status}
+                  </span>
+                </div>
+
+                <div className="consent-details">
+                  <div className="consent-detail-item">
+                    <strong>Patient:</strong> {consent.patientId}
+                  </div>
+                  <div className="consent-detail-item">
+                    <strong>Created:</strong>{" "}
+                    {new Date(consent.createdAt).toLocaleDateString()}
+                  </div>
+                  {consent.blockchainTxHash && (
+                    <div className="consent-detail-item">
+                      <strong>Tx Hash:</strong>
+                      <span className="consent-tx-hash">
+                        {consent.blockchainTxHash}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {consent.status === "pending" && (
+                  <div className="consent-actions">
+                    <button
+                      className="action-btn primary"
+                      onClick={() => handleUpdateStatus(consent.id, "active")}
+                    >
+                      Approve
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          })
+        ) : (
+          <div className="placeholder">
+            <p>Consent list will be displayed here</p>
+            <p>Implement the consent list rendering</p>
+          </div>
+        )}
       </div>
     </div>
   );
 };
 
 export default ConsentManagement;
-
-

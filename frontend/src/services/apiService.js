@@ -1,24 +1,25 @@
-import axios from 'axios';
+import axios from "axios";
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL =
+  process.env.REACT_APP_API_URL || "http://localhost:5000/api";
 
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   },
 });
 
 export const apiService = {
   // Health check
   healthCheck: async () => {
-    const response = await api.get('/health');
+    const response = await api.get("/health");
     return response.data;
   },
 
   // Patients
-  getPatients: async (page = 1, limit = 10, search = '') => {
-    const response = await api.get('/patients', {
+  getPatients: async (page = 1, limit = 10, search = "") => {
+    const response = await api.get("/patients", {
       params: { page, limit, search },
     });
     return response.data;
@@ -39,8 +40,7 @@ export const apiService = {
     const params = {};
     if (patientId) params.patientId = patientId;
     if (status) params.status = status;
-    
-    const response = await api.get('/consents', { params });
+    const response = await api.get("/consents", { params });
     return response.data;
   },
 
@@ -50,7 +50,7 @@ export const apiService = {
   },
 
   createConsent: async (consentData) => {
-    const response = await api.post('/consents', consentData);
+    const response = await api.post("/consents", consentData);
     return response.data;
   },
 
@@ -63,14 +63,14 @@ export const apiService = {
   getTransactions: async (walletAddress = null, limit = 20) => {
     const params = { limit };
     if (walletAddress) params.walletAddress = walletAddress;
-    
-    const response = await api.get('/transactions', { params });
+
+    const response = await api.get("/transactions", { params });
     return response.data;
   },
 
   // Signature verification
   verifySignature: async (message, signature, address) => {
-    const response = await api.post('/verify-signature', {
+    const response = await api.post("/verify-signature", {
       message,
       signature,
       address,
@@ -80,9 +80,7 @@ export const apiService = {
 
   // Statistics
   getStats: async () => {
-    const response = await api.get('/stats');
+    const response = await api.get("/stats");
     return response.data;
   },
 };
-
-

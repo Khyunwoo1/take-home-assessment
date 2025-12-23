@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import './PatientList.css';
-import { apiService } from '../services/apiService';
+import React, { useState, useEffect, useRef } from "react";
+import "./PatientList.css";
+import { apiService } from "../services/apiService";
 
 const PatientList = ({ onSelectPatient }) => {
   const [patients, setPatients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [pagination, setPagination] = useState(null);
 
@@ -21,6 +21,14 @@ const PatientList = ({ onSelectPatient }) => {
     setLoading(true);
     try {
       // TODO: Call API and update state
+      const { pagination, patients } = await apiService.getPatients(
+        currentPage,
+        10,
+        searchTerm
+      );
+
+      setPatients(patients);
+      setPagination(pagination);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -29,30 +37,22 @@ const PatientList = ({ onSelectPatient }) => {
   };
 
   useEffect(() => {
-    fetchPatients();
+    const timer = setTimeout(() => {
+      console.log("fetching patients");
+      fetchPatients();
+    }, 300);
+
+    return () => clearTimeout(timer);
   }, [currentPage, searchTerm]);
 
   // TODO: Implement search functionality
   // Add a debounce or handle search input changes
   const handleSearch = (e) => {
     // Your implementation here
+    setSearchTerm(e);
   };
 
-  if (loading) {
-    return (
-      <div className="patient-list-container">
-        <div className="loading">Loading patients...</div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="patient-list-container">
-        <div className="error">Error: {error}</div>
-      </div>
-    );
-  }
+  // moved "if loading" and "if error" to prevent input from unmounting when fetch request starts
 
   return (
     <div className="patient-list-container">
@@ -64,6 +64,8 @@ const PatientList = ({ onSelectPatient }) => {
           placeholder="Search patients..."
           className="search-input"
           // TODO: Add value, onChange handlers
+          onChange={(e) => handleSearch(e.target.value)}
+          value={searchTerm}
         />
       </div>
 
@@ -71,11 +73,36 @@ const PatientList = ({ onSelectPatient }) => {
       {/* Map through patients and display them */}
       {/* Each patient should be clickable and call onSelectPatient with patient.id */}
       <div className="patient-list">
-        {/* Your implementation here */}
-        <div className="placeholder">
-          <p>Patient list will be displayed here</p>
-          <p>Implement the patient list rendering</p>
-        </div>
+        {loading ? (
+          <div className="loading">Loading patients...</div>
+        ) : error ? (
+          <div className="error">Error: {error}</div>
+        ) : patients.length ? (
+          patients.map((patient) => (
+            <div
+              className="patient-card"
+              key={patient.id}
+              onClick={() => onSelectPatient(patient.id)}
+            >
+              <div className="patient-card-header">
+                <p className="patient-card-name">{patient.name}</p>
+                <p className="patient-id">{patient.patientId}</p>
+              </div>
+              <div className="patient-info">
+                <p className="patient-info-item">{patient.address}</p>
+                <p className="patient-info-item">{patient.phone}</p>
+                <p className="patient-info-item">{patient.email}</p>
+                <p className="patient-info-item">{patient.dateOfBirth}</p>
+                <p className="patient-info-item">{patient.gender}</p>
+                <p className="patient-wallet">{patient.walletAddress}</p>
+              </div>
+            </div>
+          ))
+        ) : (
+          <div className="placeholder">
+            <p>No patients found</p>
+          </div>
+        )}
       </div>
 
       {/* TODO: Implement pagination controls */}
@@ -83,6 +110,23 @@ const PatientList = ({ onSelectPatient }) => {
       {pagination && (
         <div className="pagination">
           {/* Your pagination implementation here */}
+          <button
+            disabled={currentPage === 1}
+            onClick={() => setCurrentPage(currentPage - 1)}
+          >
+            Previous
+          </button>
+
+          <span className="pagination-info">
+            Page {pagination.page} of {pagination.totalPages}
+          </span>
+
+          <button
+            disabled={currentPage === pagination.totalPages}
+            onClick={() => setCurrentPage(currentPage + 1)}
+          >
+            Next
+          </button>
         </div>
       )}
     </div>
@@ -90,5 +134,3 @@ const PatientList = ({ onSelectPatient }) => {
 };
 
 export default PatientList;
-
-
